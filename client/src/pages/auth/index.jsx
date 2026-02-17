@@ -1,13 +1,18 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Checkbox } from "../../components/ui/checkbox";
+import { toast } from "sonner";
+import { apiClient } from "../../lib/api-client";
+import { SIGNUP_ROUTE } from "../../utils/constants";
 
 const Auth = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate = useNavigate();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -27,18 +32,51 @@ const Auth = () => {
     });
   };
 
+  const validateSignup = () => {
+    if (!formData.email.length || !formData.password.length) {
+      toast.error("Email and password are required");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return false;
+    }
+    return true;
+  };
+
+  const validateLogin = () => {
+    if (!formData.email.length || !formData.password.length) {
+      toast.error("Email and password are required");
+      return false;
+    }
+    return true;
+  };
+
   // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (isRegister) {
-      // Handle registration
-      console.log("Register:", formData);
-    } else {
-      // Handle login
-      console.log("Login:", {
-        email: formData.email,
-        password: formData.password,
-      });
+  const handleSubmit = async () => {
+    if (isRegister && validateSignup()) {
+      const response = await apiClient.post(
+        SIGNUP_ROUTE,
+        { email: formData.email, password: formData.password },
+        { withCredentials: true },
+      );
+      console.log({ response });
+      if (response.data.user.id) {
+        toast.success("Registration Successful.");
+      }
+    }
+    if (!isRegister && validateLogin()) {
+      const response = await apiClient.post(
+        "/api/auth/login",
+        { email: formData.email, password: formData.password },
+        { withCredentials: true },
+      );
+      console.log({ response });
+      if (response.status === 201 && response.data.user.id) {
+        toast.success("Login Successful.");
+        if (response.data.user.profileSetup) navigate("/chat");
+        else navigate("/profile");
+      }
     }
   };
 
@@ -284,10 +322,10 @@ const Auth = () => {
 
             {/* Submit Button */}
             <Button
-            onClick = {handleSubmit}
+              onClick={handleSubmit}
               type="submit"
               className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 rounded-lg font-medium transition-colors"
-              >
+            >
               {isRegister ? "Create Account" : "Login"}
             </Button>
 
