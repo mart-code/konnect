@@ -7,10 +7,12 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { toast } from "sonner";
 import { apiClient } from "../../lib/api-client";
 import { SIGNUP_ROUTE } from "../../utils/constants";
+import { useAppStore } from "../../store";
 
 const Auth = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const {setUserInfo} = useAppStore();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
@@ -65,7 +67,7 @@ const Auth = () => {
         );
         if (response.data.user.id) {
           toast.success("Registration Successful.");
-         
+         setUserInfo(response.data.user);
           navigate("/profile");
         }
         console.log({ response });
@@ -84,6 +86,7 @@ const Auth = () => {
         );
         console.log({ response });
         if (response.status === 201 && response.data.user.id) {
+          setUserInfo(response.data.user);
           toast.success("Login Successful.");
           if (response.data.user.profileSetup) navigate("/chat");
           else navigate("/profile");
