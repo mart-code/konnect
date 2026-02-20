@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAppStore } from "../../store"
 import {useNavigate} from 'react-router-dom';
 import {ArrowLeft, Trash2, Plus} from 'lucide-react'
@@ -19,6 +19,15 @@ const Profile = () => {
   const [image, setImage] = useState(null)
   const [hovered, setHovered] = useState(false)
   const [selectedColor, setSelectedColor] = useState(0);
+  const fileInputRef = useRef(null);
+
+  useEffect(()=>{
+    if(userInfo.profileSetup){
+      setFirstName(userInfo.firstName)
+      setLastName(userInfo.lastName)
+      setSelectedColor(userInfo.color)
+    }
+  }, [userInfo])
 
   const validateProfile = () => {
     if (!firstName || !lastName || selectedColor === undefined || selectedColor === null) {
@@ -27,6 +36,25 @@ const Profile = () => {
     }
     return true;
   }
+
+const handleFileInputClick = () => {
+  fileInputRef.current.click();
+}
+
+const handleImageChange = async (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+const handleDeleteImage = () => {
+  setImage(null);
+}
 
   const saveChanges = async()=>{
     if(validateProfile()) {
@@ -47,11 +75,16 @@ const Profile = () => {
    }  
   }
 }
+
+const handleNavigate = () => {
+ if(userInfo.profileSetup) navigate('/chat')
+  else toast.error("Please fill in all the fields")
+}
    return (
     <div className="h-[100vh] bg-[#1b1c24] flex items-center justify-center flex-col gap-10">
       <div className="flex flex-col gap-10 w-[80vw] md:w-max">
         <div className="">
-          <ArrowLeft className="text-4xl lg:text-6xl text-white/90 cursor-pointer"/>
+          <ArrowLeft className="text-4xl lg:text-6xl text-white/90 cursor-pointer" onClick={handleNavigate}/>
         </div>
         <div className="grid grid-cols">
           <div className="h-full w-32 md:w-48 md:h-48 relative flex items-center justify-center" onMouseEnter={()=> setHovered(true)} onMouseLeave={()=> setHovered(false)}>
