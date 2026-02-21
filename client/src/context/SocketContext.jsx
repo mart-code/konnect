@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { HOST } from "../utils/constants";
 import { useAppStore } from "../store";
+import { toast } from "sonner";
 
 const SocketContext = createContext(null);
 
@@ -33,6 +34,7 @@ export const SocketProvider = ({ children }) => {
     addGroupMessage,
     setIncomingCall,
     clearActiveCall,
+    triggerContactsRefetch,
   } = useAppStore();
 
   useEffect(() => {
@@ -80,6 +82,22 @@ export const SocketProvider = ({ children }) => {
     socket.on("callEnded", () => {
       useAppStore.getState().clearActiveCall();
       useAppStore.getState().clearIncomingCall();
+    });
+
+    // ─── FRIEND REQUESTS ────────────────────────────────────────────
+    socket.on("newFriendRequest", (request) => {
+      toast.info(`New friend request from ${request.sender.firstName || request.sender.email}`, {
+        description: "Check your contacts to accept.",
+        duration: 5000,
+      });
+      triggerContactsRefetch();
+    });
+
+    socket.on("friendRequestAccepted", ({ friendName }) => {
+      toast.success(`${friendName} accepted your friend request!`, {
+        duration: 5000,
+      });
+      triggerContactsRefetch();
     });
 
     return () => {

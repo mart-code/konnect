@@ -34,4 +34,8 @@ export const createChatSlice = (set, get) => ({
         [groupId]: [...(state.groupMessages[groupId] || []), message],
       },
     })),
+
+  // Toggle this to trigger a refetch in ContactList
+  contactsRefetch: false,
+  triggerContactsRefetch: () => set((state) => ({ contactsRefetch: !state.contactsRefetch })),
 });

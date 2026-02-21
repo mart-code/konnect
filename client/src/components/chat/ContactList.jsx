@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { useAppStore } from "../../store";
+import { apiClient } from "../../lib/api-client";
 import { Search, UserPlus, Users, Loader2, Check, X, Bell } from "lucide-react";
 import { getColor } from "../../lib/utils";
 import { toast } from "sonner";
@@ -23,7 +26,7 @@ const ContactList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
-  const { setSelectedContact, selectedContact, userInfo } = useAppStore();
+  const { setSelectedContact, selectedContact, userInfo, contactsRefetch } = useAppStore();
 
   const fetchContacts = async () => {
     try {
@@ -42,7 +45,7 @@ const ContactList = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [contactsRefetch]);
 
   useEffect(() => {
     const search = async () => {

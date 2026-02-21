@@ -63,6 +63,7 @@ const handleDeleteImage = () => {
         const response = await apiClient.post(UPDATE_PROFILE_ROUTE, {
           firstName,
           lastName,
+          image,
           color: selectedColor
         }, {withCredentials: true});
 
@@ -92,16 +93,27 @@ const handleNavigate = () => {
             <Avatar className={'h-32 w-32 md:w-48 md:h-48 rounded-full overflow-hidden'}>
               {
                 image ? <AvatarImage src={image} alt={'profile'} className={'object-cover w-full h-full bg-black'}/> :<div className={`uppercase h-32 w-32 md:w-48 md:h-48 text-5xl border flex items-center justify-center rounded-full ${getColor(selectedColor)}`}>
-                  {firstName ? firstName.split('').shift() : userInfo.email.split(' ').shift()}
+                  {firstName ? firstName[0] : userInfo.email[0]}
                 </div>
               }
             </Avatar> 
             {
-              hovered && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer rounded-full">
-                {image ? <Trash2 className="text-white text-3xl cursor-pointer"/>: <Plus className="text-white text-3xl cursor-pointer"/>}
-              </div>
+              hovered && (
+                <div 
+                  className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer rounded-full"
+                  onClick={image ? handleDeleteImage : handleFileInputClick}
+                >
+                  {image ? <Trash2 className="text-white text-3xl cursor-pointer"/>: <Plus className="text-white text-3xl cursor-pointer"/>}
+                </div>
+              )
             }
-            {/* imput here */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleImageChange} 
+              accept=".png, .jpg, .jpeg, .svg, .webp"
+            />
           </div>
               <div className="flex min-w-32 md:min-w-64 flex-col gap-5 text-white items-center justify-center">
                 <div className="w-full">
