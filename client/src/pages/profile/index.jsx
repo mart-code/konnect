@@ -34,6 +34,7 @@ const Profile = () => {
       toast.error("Please fill in all the fields");
       return false;
     }
+  
     return true;
   }
 
@@ -122,7 +123,7 @@ colors.map((color, index) => <div className={`${color} h-8 w-8 rounded-full curs
 
         </div>
         <div className="w-full">
-          <Button className='h-16 w-full bg-purple-500 hover:bg-purple-900 transition-all duration-300'onClick={saveChanges}> Save Changes</Button>
+          <Button className='h-16 w-full bg-purple-500 hover:bg-purple-900 transition-all duration-300' onClick={saveChanges}> Save Changes</Button>
         </div>
       </div>
     </div>
