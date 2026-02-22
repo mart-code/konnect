@@ -1,5 +1,5 @@
-import { useNavigate, useLocation, NavLink, Outlet } from "react-router-dom";
 import {
+  Bell,
   Home,
   MessageSquare,
   Users,
@@ -7,16 +7,19 @@ import {
   LogOut,
   PlusCircle,
   Settings,
+  X,
+  Check,
 } from "lucide-react";
 import { useAppStore } from "../../store";
 import { getColor } from "../../lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CreatePostModal from "../feed/CreatePostModal";
 import CallOverlay from "../chat/CallOverlay";
 import CallModal from "../chat/CallModal";
 import { apiClient } from "../../lib/api-client";
-import { LOGOUT_ROUTE } from "../../utils/constants";
+import { LOGOUT_ROUTE, GET_PENDING_REQUESTS, ACCEPT_FRIEND_REQUEST, REJECT_FRIEND_REQUEST } from "../../utils/constants";
 import { toast } from "sonner";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 /**
  * SideNav — persistent left sidebar shown on all authenticated app pages.
@@ -27,6 +30,96 @@ const navItems = [
   { to: "/groups", icon: Users, label: "Groups", color: "from-emerald-500 to-teal-500" },
   { to: "/tasks", icon: CheckSquare, label: "Tasks", color: "from-amber-500 to-orange-500" },
 ];
+
+const NotificationBell = () => {
+  const { pendingRequests, removePendingRequest, triggerContactsRefetch } = useAppStore();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleAction = async (requestId, action) => {
+    try {
+      const url = action === "accept" ? ACCEPT_FRIEND_REQUEST(requestId) : REJECT_FRIEND_REQUEST(requestId);
+      const response = await apiClient.post(url, {}, { withCredentials: true });
+      if (response.status === 200) {
+        toast.success(`Friend request ${action}ed`);
+        removePendingRequest(requestId);
+        if (action === "accept") triggerContactsRefetch();
+      }
+    } catch (error) {
+      toast.error(`Failed to ${action} request`);
+    }
+  };
+
+  return (
+    <div className="relative w-full">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-center p-3.5 rounded-2xl text-white/20 hover:bg-white/[0.03] hover:text-white transition-all duration-300 group relative"
+      >
+        <Bell size={20} className={pendingRequests.length > 0 ? "text-amber-400" : ""} />
+        {pendingRequests.length > 0 && (
+          <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-[#16161e]">
+            {pendingRequests.length}
+          </span>
+        )}
+        <span className="absolute left-full ml-4 px-3 py-1.5 bg-[#1a1b26] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-2xl border border-white/5 invisible md:visible">
+          Notifications
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute bottom-full left-full ml-4 mb-2 w-64 bg-[#1a1b26] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+          <div className="p-4 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Notifications</h3>
+            <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-white/60">
+              {pendingRequests.length} Pending
+            </span>
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {pendingRequests.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-xs text-white/20 italic">No new notifications</p>
+              </div>
+            ) : (
+              pendingRequests.map((req) => (
+                <div key={req._id} className="p-3 hover:bg-white/[0.02] border-b border-white/5 last:border-0 transition-colors">
+                  <div className="flex items-center gap-3 mb-2">
+                    {req.sender.image ? (
+                      <img src={req.sender.image} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${getColor(req.sender.color)}`}>
+                        {req.sender.firstName?.[0] || req.sender.email?.[0]}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-white truncate">
+                        {req.sender.firstName ? `${req.sender.firstName} ${req.sender.lastName || ""}` : req.sender.email}
+                      </p>
+                      <p className="text-[10px] text-white/40">Sent you a friend request</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleAction(req._id, "accept")}
+                      className="flex-1 flex items-center justify-center gap-1 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition-colors"
+                    >
+                      <Check size={12} /> Accept
+                    </button>
+                    <button
+                      onClick={() => handleAction(req._id, "reject")}
+                      className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-white/60 text-[10px] font-bold py-1.5 rounded-lg transition-colors"
+                    >
+                      <X size={12} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SideNav = ({ onCreatePost }) => {
   const { userInfo, setUserInfo } = useAppStore();
@@ -63,6 +156,9 @@ const SideNav = ({ onCreatePost }) => {
 
       {/* Nav Links */}
       <nav className="flex flex-col items-center gap-2 flex-1 w-full px-2">
+        <NotificationBell />
+        <div className="w-8 h-[1px] bg-white/5 my-2" />
+        
         {navItems.map(({ to, icon: Icon, label, color }) => (
           <NavLink
             key={to}
@@ -116,6 +212,7 @@ const SideNav = ({ onCreatePost }) => {
 
       {/* Footer Actions */}
       <div className="mt-auto flex flex-col items-center gap-4 w-full px-2">
+        
         <button
           onClick={handleLogout}
           title="Logout"
@@ -174,7 +271,28 @@ const SideNav = ({ onCreatePost }) => {
  */
 const AppLayout = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const { incomingCall, setIncomingCall, setActiveCall, activeCall } = useAppStore();
+  const { 
+    incomingCall, 
+    setIncomingCall, 
+    setActiveCall, 
+    activeCall, 
+    setPendingRequests, 
+    triggerContactsRefetch 
+  } = useAppStore();
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await apiClient.get(GET_PENDING_REQUESTS, { withCredentials: true });
+        if (response.status === 200) {
+          setPendingRequests(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending requests", error);
+      }
+    };
+    fetchRequests();
+  }, [setPendingRequests]);
 
   const handleAcceptCall = () => {
     setActiveCall({

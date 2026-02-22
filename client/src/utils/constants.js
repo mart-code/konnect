@@ -16,6 +16,7 @@ export const GET_FRIENDS = `${CONTACTS_ROUTES}/friends`;
 export const GET_PENDING_REQUESTS = `${CONTACTS_ROUTES}/requests`;
 export const SEND_FRIEND_REQUEST = `${CONTACTS_ROUTES}/friend-request`;
 export const ACCEPT_FRIEND_REQUEST = (id) => `${CONTACTS_ROUTES}/friend-request/${id}/accept`;
+export const REJECT_FRIEND_REQUEST = (id) => `${CONTACTS_ROUTES}/friend-request/${id}/reject`;
 
 // Posts
 export const POSTS_ROUTES = "api/posts";

@@ -3,6 +3,8 @@ import { io } from "socket.io-client";
 import { HOST } from "../utils/constants";
 import { useAppStore } from "../store";
 import { toast } from "sonner";
+import { apiClient } from "../lib/api-client";
+import { ACCEPT_FRIEND_REQUEST, REJECT_FRIEND_REQUEST } from "../utils/constants";
 
 const SocketContext = createContext(null);
 
@@ -35,6 +37,8 @@ export const SocketProvider = ({ children }) => {
     setIncomingCall,
     clearActiveCall,
     triggerContactsRefetch,
+    addPendingRequest,
+    removePendingRequest,
   } = useAppStore();
 
   useEffect(() => {
@@ -85,11 +89,30 @@ export const SocketProvider = ({ children }) => {
     });
 
     // ─── FRIEND REQUESTS ────────────────────────────────────────────
+    const handleRequestAction = async (requestId, action) => {
+      try {
+        const url = action === "accept" ? ACCEPT_FRIEND_REQUEST(requestId) : REJECT_FRIEND_REQUEST(requestId);
+        const response = await apiClient.post(url, {}, { withCredentials: true });
+        if (response.status === 200) {
+          toast.success(`Friend request ${action}ed`);
+          removePendingRequest(requestId);
+          if (action === "accept") triggerContactsRefetch();
+        }
+      } catch (error) {
+        toast.error(`Failed to ${action} request`);
+      }
+    };
+
     socket.on("newFriendRequest", (request) => {
-      toast.info(`New friend request from ${request.sender.firstName || request.sender.email}`, {
-        description: "Check your contacts to accept.",
-        duration: 5000,
+      toast.info(`Friend request from ${request.sender.firstName || request.sender.email}`, {
+        description: "You have a new friend request.",
+        action: {
+          label: "Accept",
+          onClick: () => handleRequestAction(request._id, "accept"),
+        },
+        duration: 10000,
       });
+      addPendingRequest(request);
       triggerContactsRefetch();
     });
 

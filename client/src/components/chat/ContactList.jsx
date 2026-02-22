@@ -9,7 +9,8 @@ import {
   SEARCH_CONTACTS, 
   SEND_FRIEND_REQUEST, 
   GET_PENDING_REQUESTS, 
-  ACCEPT_FRIEND_REQUEST 
+  ACCEPT_FRIEND_REQUEST,
+  REJECT_FRIEND_REQUEST
 } from "../../utils/constants";
 
 /**
@@ -106,6 +107,22 @@ const ContactList = () => {
       }
     } catch (error) {
       toast.error("Failed to accept request");
+    }
+  };
+
+  const handleRejectRequest = async (requestId) => {
+    try {
+      const response = await apiClient.post(
+        REJECT_FRIEND_REQUEST(requestId),
+        {},
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        toast.success("Friend request rejected");
+        fetchContacts();
+      }
+    } catch (error) {
+      toast.error("Failed to reject request");
     }
   };
 
@@ -213,7 +230,10 @@ const ContactList = () => {
                       >
                         <Check size={12} />
                       </button>
-                      <button className="p-1.5 bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all">
+                      <button 
+                        onClick={() => handleRejectRequest(req._id)}
+                        className="p-1.5 bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all"
+                      >
                         <X size={12} />
                       </button>
                     </div>
