@@ -31,19 +31,25 @@ const navItems = [
   { to: "/tasks", icon: CheckSquare, label: "Tasks", color: "from-amber-500 to-orange-500" },
 ];
 
+import { ACCEPT_FRIEND_REQUEST_MUTATION, REJECT_FRIEND_REQUEST_MUTATION } from "../../graphql/queries";
+
 const NotificationBell = () => {
   const { pendingRequests, removePendingRequest, triggerContactsRefetch } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
 
+  const [acceptRequest] = useMutation(ACCEPT_FRIEND_REQUEST_MUTATION);
+  const [rejectRequest] = useMutation(REJECT_FRIEND_REQUEST_MUTATION);
+
   const handleAction = async (requestId, action) => {
     try {
-      const url = action === "accept" ? ACCEPT_FRIEND_REQUEST(requestId) : REJECT_FRIEND_REQUEST(requestId);
-      const response = await apiClient.post(url, {}, { withCredentials: true });
-      if (response.status === 200) {
-        toast.success(`Friend request ${action}ed`);
-        removePendingRequest(requestId);
-        if (action === "accept") triggerContactsRefetch();
+      if (action === "accept") {
+        await acceptRequest({ variables: { requestId } });
+        triggerContactsRefetch();
+      } else {
+        await rejectRequest({ variables: { requestId } });
       }
+      toast.success(`Friend request ${action}ed`);
+      removePendingRequest(requestId);
     } catch (error) {
       toast.error(`Failed to ${action} request`);
     }
@@ -269,6 +275,9 @@ const SideNav = ({ onCreatePost }) => {
  *   - CreatePostModal receives an onPostCreated callback, but the actual feed
  *     update happens in the Home page via a re-render trigger (postCreatedAt)
  */
+import { useQuery } from "@apollo/client";
+import { GET_PENDING_REQUESTS_QUERY } from "../../graphql/queries";
+
 const AppLayout = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const { 
@@ -280,19 +289,23 @@ const AppLayout = () => {
     triggerContactsRefetch 
   } = useAppStore();
 
+  const { data, loading, error } = useQuery(GET_PENDING_REQUESTS_QUERY, {
+    onCompleted: (data) => {
+      setPendingRequests(data.getPendingRequests);
+    },
+    onError: (err) => {
+      console.error("Failed to fetch pending requests", err);
+    },
+    // Stay synced with the server
+    fetchPolicy: "network-only",
+  });
+
+  // Re-sync store when data changes
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const response = await apiClient.get(GET_PENDING_REQUESTS, { withCredentials: true });
-        if (response.status === 200) {
-          setPendingRequests(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pending requests", error);
-      }
-    };
-    fetchRequests();
-  }, [setPendingRequests]);
+    if (data?.getPendingRequests) {
+      setPendingRequests(data.getPendingRequests);
+    }
+  }, [data, setPendingRequests]);
 
   const handleAcceptCall = () => {
     setActiveCall({

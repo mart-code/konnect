@@ -28,10 +28,23 @@ import { getColor } from "../../lib/utils";
  *   - Rendered by AppLayout.jsx (so it can overlay any page)
  *   - Notifies pages/home/index.jsx via onPostCreated callback
  */
+import { useMutation } from "@apollo/client";
+import { CREATE_POST_MUTATION, GET_FEED_QUERY } from "../../graphql/queries";
+
 const CreatePostModal = ({ onClose, onPostCreated }) => {
   const { userInfo } = useAppStore();
   const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const [createPost, { loading }] = useMutation(CREATE_POST_MUTATION, {
+    onCompleted: (data) => {
+      // In a more complex app we might update the cache here, 
+      // but we already use optimistic updates and the feed refetches if needed.
+    },
+    onError: (err) => {
+      // Handled in handleSubmit for rollback
+    },
+    refetchQueries: [{ query: GET_FEED_QUERY }],
+  });
 
   const displayName = userInfo?.firstName
     ? `${userInfo.firstName} ${userInfo.lastName || ""}`.trim()
@@ -68,16 +81,13 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
     onPostCreated?.(draftPost);
     onClose();
 
-    // Step 2: Background API call
-    setLoading(true);
+    // Step 2: GraphQL Mutation call
     try {
-      await apiClient.post(CREATE_POST, { content: content.trim() }, { withCredentials: true });
+      await createPost({ variables: { content: content.trim() } });
     } catch (err) {
       // Step 3: Rollback on error
       onPostCreated?.(null, tempId);
-      toast.error(err.response?.data?.message || "Failed to post. Please try again.");
-    } finally {
-      setLoading(false);
+      toast.error("Failed to post. Please try again.");
     }
   };
 

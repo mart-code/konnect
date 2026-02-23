@@ -91,13 +91,14 @@ export const SocketProvider = ({ children }) => {
     // ─── FRIEND REQUESTS ────────────────────────────────────────────
     const handleRequestAction = async (requestId, action) => {
       try {
-        const url = action === "accept" ? ACCEPT_FRIEND_REQUEST(requestId) : REJECT_FRIEND_REQUEST(requestId);
-        const response = await apiClient.post(url, {}, { withCredentials: true });
-        if (response.status === 200) {
-          toast.success(`Friend request ${action}ed`);
-          removePendingRequest(requestId);
-          if (action === "accept") triggerContactsRefetch();
+        if (action === "accept") {
+          await acceptRequest({ variables: { requestId } });
+          triggerContactsRefetch();
+        } else {
+          await rejectRequest({ variables: { requestId } });
         }
+        toast.success(`Friend request ${action}ed`);
+        removePendingRequest(requestId);
       } catch (error) {
         toast.error(`Failed to ${action} request`);
       }

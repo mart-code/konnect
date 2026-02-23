@@ -23,35 +23,36 @@ const AuthRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/home" /> : children;
 };
 
+import { useLazyQuery } from "@apollo/client";
+import { ME_QUERY } from "./graphql/queries";
+
 function App() {
   const { userInfo, setUserInfo } = useAppStore();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const response = await apiClient.get(GET_USER_INFO, {
-          withCredentials: true,
-        });
-        if (response.status === 200 && response.data.id) {
-          setUserInfo(response.data);
-        } else {
-          setUserInfo(undefined);
-        }
-      } catch (error) {
+  const [getUserData] = useLazyQuery(ME_QUERY, {
+    onCompleted: (data) => {
+      if (data?.me?.id) {
+        setUserInfo(data.me);
+      } else {
         setUserInfo(undefined);
-        console.log(error);
-      } finally {
-        setLoading(false);
       }
-    };
+      setLoading(false);
+    },
+    onError: () => {
+      setUserInfo(undefined);
+      setLoading(false);
+    },
+    fetchPolicy: "network-only",
+  });
 
+  useEffect(() => {
     if (!userInfo) {
       getUserData();
     } else {
       setLoading(false);
     }
-  }, [userInfo, setUserInfo]);
+  }, [userInfo, getUserData]);
 
   if (loading) {
     return (

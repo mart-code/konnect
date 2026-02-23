@@ -21,26 +21,30 @@ import CreatePostModal from "../../components/feed/CreatePostModal";
  *   - When CreatePostModal calls addPost(draftPost), we prepend the draft to `posts`
  *   - If rollback(tempId) is called (API failed), we filter out by _id
  */
+import { useQuery } from "@apollo/client";
+import { GET_FEED_QUERY } from "../../graphql/queries";
+
 const Home = () => {
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const fetchFeed = async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get(GET_FEED, { withCredentials: true });
-      setPosts(res.data);
-    } catch (err) {
+  const { data, loading, error, refetch: fetchFeed } = useQuery(GET_FEED_QUERY, {
+    onCompleted: (data) => {
+      setPosts(data.getFeed);
+    },
+    onError: () => {
       toast.error("Failed to load feed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    // Ensure we fetch on mount
+    fetchPolicy: "network-only",
+  });
 
+  // Re-sync posts if data changes (e.g., from refetch)
   useEffect(() => {
-    fetchFeed();
-  }, []);
+    if (data?.getFeed) {
+      setPosts(data.getFeed);
+    }
+  }, [data]);
 
   // Called by CreatePostModal for optimistic prepend or rollback
   const handlePostCreated = (draftPost, rollbackId) => {

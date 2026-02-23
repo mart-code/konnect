@@ -20,33 +20,40 @@ import {
  *   - Fetches users on mount
  *   - On selection, updates selectedContact in Zustand
  */
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_FRIENDS_QUERY, GET_PENDING_REQUESTS_QUERY, ACCEPT_FRIEND_REQUEST_MUTATION, REJECT_FRIEND_REQUEST_MUTATION } from "../../graphql/queries";
+
 const ContactList = () => {
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const { setSelectedContact, selectedContact, userInfo, contactsRefetch } = useAppStore();
 
-  const fetchContacts = async () => {
-    try {
-      const [friendsRes, requestsRes] = await Promise.all([
-        apiClient.get(GET_FRIENDS, { withCredentials: true }),
-        apiClient.get(GET_PENDING_REQUESTS, { withCredentials: true }),
-      ]);
-      if (friendsRes.status === 200) setFriends(friendsRes.data);
-      if (requestsRes.status === 200) setRequests(requestsRes.data);
-    } catch (error) {
-      toast.error("Failed to fetch contacts");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { refetch: fetchFriends } = useQuery(GET_FRIENDS_QUERY, {
+    onCompleted: (data) => {
+      setFriends(data.getFriends);
+    },
+    fetchPolicy: "network-only",
+  });
+
+  const { refetch: fetchRequests } = useQuery(GET_PENDING_REQUESTS_QUERY, {
+    onCompleted: (data) => {
+      setRequests(data.getPendingRequests);
+    },
+    fetchPolicy: "network-only",
+  });
+
+  const [acceptRequest] = useMutation(ACCEPT_FRIEND_REQUEST_MUTATION);
+  const [rejectRequest] = useMutation(REJECT_FRIEND_REQUEST_MUTATION);
+
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchContacts();
-  }, [contactsRefetch]);
+    fetchFriends();
+    fetchRequests();
+  }, [contactsRefetch, fetchFriends, fetchRequests]);
 
   useEffect(() => {
     const search = async () => {
