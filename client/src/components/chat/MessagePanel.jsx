@@ -18,6 +18,9 @@ import { toast } from "sonner";
  *   - Subscribes to Zustand "dmMessages" for real-time updates
  *   - Implements auto-scroll to bottom
  */
+import { useLazyQuery } from "@apollo/client";
+import { GET_DM_MESSAGES_QUERY, GET_GROUP_MESSAGES_QUERY } from "../../graphql/queries";
+
 const MessagePanel = () => {
   const { selectedContact, userInfo, dmMessages, setDmMessages, groupMessages, setGroupMessages, setActiveCall } = useAppStore();
   const [loading, setLoading] = useState(false);
@@ -25,9 +28,24 @@ const MessagePanel = () => {
   const socketRef = useSocket();
 
   const isGroup = selectedContact?.isGroup;
+  
+  const [getDmMessages] = useLazyQuery(GET_DM_MESSAGES_QUERY, {
+    onCompleted: (data) => {
+      setDmMessages(selectedContact.id, data.getDirectMessages);
+      setLoading(false);
+    }
+  });
+
+  const [getGroupMessages] = useLazyQuery(GET_GROUP_MESSAGES_QUERY, {
+    onCompleted: (data) => {
+      setGroupMessages(selectedContact.id, data.getGroupMessages);
+      setLoading(false);
+    }
+  });
+
   const messages = isGroup 
-    ? (groupMessages[selectedContact?._id] || [])
-    : (dmMessages[selectedContact?._id] || []);
+    ? (groupMessages[selectedContact?.id] || [])
+    : (dmMessages[selectedContact?.id] || []);
 
   const handleStartCall = () => {
     if (!isGroup && selectedContact) {
@@ -40,41 +58,23 @@ const MessagePanel = () => {
 
   // 1. Fetch history when contact changes
   useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedContact?._id) return;
-      setLoading(true);
-      try {
-        const endpoint = isGroup 
-          ? GET_GROUP_MESSAGES(selectedContact._id)
-          : GET_DM_MESSAGES(selectedContact._id);
+    if (!selectedContact?.id) return;
+    setLoading(true);
 
-        const response = await apiClient.get(endpoint, {
-          withCredentials: true,
-        });
-        if (response.status === 200) {
-          if (isGroup) {
-            setGroupMessages(selectedContact._id, response.data);
-          } else {
-            setDmMessages(selectedContact._id, response.data);
-          }
-        }
-      } catch (error) {
-        toast.error("Failed to load message history");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
+    if (isGroup) {
+      getGroupMessages({ variables: { groupId: selectedContact.id } });
+    } else {
+      getDmMessages({ variables: { userId: selectedContact.id } });
+    }
 
     // 2. Join room for real-time events
-    if (socketRef.current && selectedContact?._id) {
+    if (socketRef.current && selectedContact?.id) {
       const roomId = isGroup
-        ? `group_${selectedContact._id}`
-        : `dm_${[userInfo.id, selectedContact._id].sort().join("_")}`;
+        ? `group_${selectedContact.id}`
+        : `dm_${[userInfo.id, selectedContact.id].sort().join("_")}`;
       socketRef.current.emit("joinRoom", { roomId });
     }
-  }, [selectedContact?._id, userInfo.id, setDmMessages, setGroupMessages, socketRef, isGroup]);
+  }, [selectedContact?.id, userInfo.id, getDmMessages, getGroupMessages, socketRef, isGroup]);
 
   // 3. Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -146,9 +146,9 @@ const MessagePanel = () => {
         ) : messages.length > 0 ? (
           messages.map((msg, index) => (
             <MessageBubble
-              key={msg._id || index}
+              key={msg.id || index}
               message={msg}
-              isSender={msg.sender === userInfo.id || msg.sender?._id === userInfo.id}
+              isSender={msg.sender.id === userInfo.id}
             />
           ))
         ) : (

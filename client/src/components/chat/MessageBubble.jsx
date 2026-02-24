@@ -88,6 +88,7 @@ const MessageBubble = ({ message, isSender }) => {
   return (
     <div className={`flex flex-col ${isSender ? "items-end" : "items-start"} gap-1`}>
       <div
+        id={message.id}
         className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-lg relative transition-all ${
           isSender
             ? "bg-violet-600 text-white rounded-tr-none"

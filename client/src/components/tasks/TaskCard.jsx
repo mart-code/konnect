@@ -15,36 +15,39 @@ import { toast } from "sonner";
  *   - Updates status via PATCH /api/tasks/:id
  *   - Deletes task via DELETE /api/tasks/:id
  */
+import { useMutation } from "@apollo/client";
+import { UPDATE_TASK_STATUS_MUTATION, DELETE_TASK_MUTATION, GET_TASKS_QUERY } from "../../graphql/queries";
+
 const TaskCard = ({ task }) => {
   const { updateTask, removeTask } = useAppStore();
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-      const response = await apiClient.patch(
-        UPDATE_TASK(task._id),
-        { status: newStatus },
-        { withCredentials: true }
-      );
-      if (response.status === 200) {
-        updateTask(response.data);
-      }
-    } catch (error) {
+  const [updateStatus] = useMutation(UPDATE_TASK_STATUS_MUTATION, {
+    onCompleted: (data) => {
+      updateTask(data.updateTaskStatus);
+    },
+    onError: () => {
       toast.error("Failed to update task status");
-    }
+    },
+    refetchQueries: [{ query: GET_TASKS_QUERY }],
+  });
+
+  const [deleteTask] = useMutation(DELETE_TASK_MUTATION, {
+    onCompleted: () => {
+      removeTask(task.id);
+      toast.success("Task deleted");
+    },
+    onError: () => {
+      toast.error("Failed to delete task");
+    },
+    refetchQueries: [{ query: GET_TASKS_QUERY }],
+  });
+
+  const handleStatusChange = async (newStatus) => {
+    await updateStatus({ variables: { taskId: task.id, status: newStatus } });
   };
 
   const handleDelete = async () => {
-    try {
-      const response = await apiClient.delete(DELETE_TASK(task._id), {
-        withCredentials: true,
-      });
-      if (response.status === 200) {
-        removeTask(task._id);
-        toast.success("Task deleted");
-      }
-    } catch (error) {
-      toast.error("Failed to delete task");
-    }
+    await deleteTask({ variables: { taskId: task.id } });
   };
 
   return (

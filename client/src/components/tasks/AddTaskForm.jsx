@@ -12,32 +12,30 @@ import { toast } from "sonner";
  *   - Rendered at the top of the Task page
  *   - On success, updates the Zustand task slice
  */
+import { useMutation } from "@apollo/client";
+import { CREATE_TASK_MUTATION, GET_TASKS_QUERY } from "../../graphql/queries";
+
 const AddTaskForm = () => {
   const [title, setTitle] = useState("");
-  const [loading, setLoading] = useState(false);
   const { addTask } = useAppStore();
+
+  const [createTask, { loading }] = useMutation(CREATE_TASK_MUTATION, {
+    onCompleted: (data) => {
+      addTask(data.createTask);
+      setTitle("");
+      toast.success("Task added");
+    },
+    onError: () => {
+      toast.error("Failed to add task");
+    },
+    refetchQueries: [{ query: GET_TASKS_QUERY }],
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    setLoading(true);
-    try {
-      const response = await apiClient.post(
-        TASKS_ROUTES,
-        { title: title.trim() },
-        { withCredentials: true }
-      );
-      if (response.status === 201) {
-        addTask(response.data);
-        setTitle("");
-        toast.success("Task added");
-      }
-    } catch (error) {
-      toast.error("Failed to add task");
-    } finally {
-      setLoading(false);
-    }
+    await createTask({ variables: { title: title.trim() } });
   };
 
   return (

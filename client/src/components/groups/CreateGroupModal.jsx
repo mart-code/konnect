@@ -8,30 +8,33 @@ import { getColor } from "../../lib/utils";
 /**
  * CreateGroupModal — Modal to create a new group with selected friends
  */
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_FRIENDS_QUERY, CREATE_GROUP_MUTATION, GET_GROUPS_QUERY } from "../../graphql/queries";
+
 const CreateGroupModal = ({ onClose, onSuccess }) => {
   const [name, setName] = useState("");
   const [friends, setFriends] = useState([]);
   const [selectedFriends, setSelectedFriends] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchingFriends, setFetchingFriends] = useState(true);
 
-  useEffect(() => {
-    const fetchFriends = async () => {
-      try {
-        const response = await apiClient.get(GET_FRIENDS, {
-          withCredentials: true,
-        });
-        if (response.status === 200) {
-          setFriends(response.data);
-        }
-      } catch (error) {
-        toast.error("Failed to load friends list");
-      } finally {
-        setFetchingFriends(false);
-      }
-    };
-    fetchFriends();
-  }, []);
+  const { loading: fetchingFriends } = useQuery(GET_FRIENDS_QUERY, {
+    onCompleted: (data) => {
+      setFriends(data.getFriends);
+    },
+    onError: () => {
+      toast.error("Failed to load friends list");
+    }
+  });
+
+  const [createGroup, { loading }] = useMutation(CREATE_GROUP_MUTATION, {
+    onCompleted: () => {
+      toast.success("Group created successfully");
+      onSuccess();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create group");
+    },
+    refetchQueries: [{ query: GET_GROUPS_QUERY }],
+  });
 
   const toggleFriend = (friendId) => {
     setSelectedFriends((prev) =>
@@ -52,22 +55,12 @@ const CreateGroupModal = ({ onClose, onSuccess }) => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await apiClient.post(
-        CREATE_GROUP,
-        { name: name.trim(), memberIds: selectedFriends },
-        { withCredentials: true }
-      );
-      if (response.status === 201) {
-        toast.success("Group created successfully");
-        onSuccess();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create group");
-    } finally {
-      setLoading(false);
-    }
+    await createGroup({ 
+      variables: { 
+        name: name.trim(), 
+        members: selectedFriends 
+      } 
+    });
   };
 
   return (

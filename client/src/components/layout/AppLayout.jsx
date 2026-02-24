@@ -87,7 +87,7 @@ const NotificationBell = () => {
               </div>
             ) : (
               pendingRequests.map((req) => (
-                <div key={req._id} className="p-3 hover:bg-white/[0.02] border-b border-white/5 last:border-0 transition-colors">
+                <div key={req.id} className="p-3 hover:bg-white/[0.02] border-b border-white/5 last:border-0 transition-colors">
                   <div className="flex items-center gap-3 mb-2">
                     {req.sender.image ? (
                       <img src={req.sender.image} className="w-8 h-8 rounded-full object-cover" />
@@ -105,13 +105,13 @@ const NotificationBell = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleAction(req._id, "accept")}
+                      onClick={() => handleAction(req.id, "accept")}
                       className="flex-1 flex items-center justify-center gap-1 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition-colors"
                     >
                       <Check size={12} /> Accept
                     </button>
                     <button
-                      onClick={() => handleAction(req._id, "reject")}
+                      onClick={() => handleAction(req.id, "reject")}
                       className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-white/60 text-[10px] font-bold py-1.5 rounded-lg transition-colors"
                     >
                       <X size={12} /> Reject

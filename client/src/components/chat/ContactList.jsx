@@ -45,6 +45,18 @@ const ContactList = () => {
     fetchPolicy: "network-only",
   });
 
+  const [searchUsers, { loading: searchLoading }] = useLazyQuery(SEARCH_USERS_QUERY, {
+    onCompleted: (data) => {
+      setSearchResults(data.searchUsers);
+      setSearching(false);
+    },
+    onError: () => {
+      setSearching(false);
+    }
+  });
+
+  const [sendFriendRequest] = useMutation(SEND_FRIEND_REQUEST_MUTATION);
+
   const [acceptRequest] = useMutation(ACCEPT_FRIEND_REQUEST_MUTATION);
   const [rejectRequest] = useMutation(REJECT_FRIEND_REQUEST_MUTATION);
 
@@ -62,24 +74,12 @@ const ContactList = () => {
         return;
       }
       setSearching(true);
-      try {
-        const response = await apiClient.get(
-          `${SEARCH_CONTACTS}?q=${searchQuery}`,
-          { withCredentials: true }
-        );
-        if (response.status === 200) {
-          setSearchResults(response.data);
-        }
-      } catch (error) {
-        // Silent fail for search
-      } finally {
-        setSearching(false);
-      }
+      searchUsers({ variables: { q: searchQuery } });
     };
 
     const timer = setTimeout(search, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   const handleSelect = (contact) => {
     setSelectedContact(contact);
@@ -87,17 +87,11 @@ const ContactList = () => {
 
   const handleSendRequest = async (userId) => {
     try {
-      const response = await apiClient.post(
-        SEND_FRIEND_REQUEST,
-        { receiverId: userId },
-        { withCredentials: true }
-      );
-      if (response.status === 201) {
-        toast.success("Friend request sent");
-        setSearchQuery("");
-      }
+      await sendFriendRequest({ variables: { receiverId: userId } });
+      toast.success("Friend request sent");
+      setSearchQuery("");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send request");
+      toast.error(error.message || "Failed to send request");
     }
   };
 
@@ -180,7 +174,7 @@ const ContactList = () => {
             {searchResults.length > 0 ? (
               searchResults.map((user) => (
                 <div
-                  key={user._id}
+                  key={user.id}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60"
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${getColor(user.color)}`}>
@@ -191,13 +185,13 @@ const ContactList = () => {
                       {user.firstName ? `${user.firstName} ${user.lastName || ""}` : user.email}
                     </p>
                   </div>
-                  {friends.some(f => f._id === user._id) ? (
+                  {friends.some(f => f.id === user.id) ? (
                     <button onClick={() => { handleSelect(user); setSearchQuery(""); }} className="p-2 text-violet-500 hover:bg-violet-500/10 rounded-lg">
                       <Check size={16} />
                     </button>
-                  ) : user._id !== userInfo.id && (
+                  ) : user.id !== userInfo.id && (
                     <button
-                      onClick={() => handleSendRequest(user._id)}
+                      onClick={() => handleSendRequest(user.id)}
                       className="p-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-all"
                       title="Send Friend Request"
                     >
@@ -221,7 +215,7 @@ const ContactList = () => {
                   Pending Requests ({requests.length})
                 </p>
                 {requests.map((req) => (
-                  <div key={req._id} className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-xl mb-1 border border-white/5">
+                  <div key={req.id} className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-xl mb-1 border border-white/5">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${getColor(req.sender.color)}`}>
                       {(req.sender.firstName?.[0] || req.sender.email[0]).toUpperCase()}
                     </div>
@@ -232,13 +226,13 @@ const ContactList = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <button 
-                        onClick={() => handleAcceptRequest(req._id)}
+                        onClick={() => handleAcceptRequest(req.id)}
                         className="p-1.5 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg transition-all"
                       >
                         <Check size={12} />
                       </button>
                       <button 
-                        onClick={() => handleRejectRequest(req._id)}
+                        onClick={() => handleRejectRequest(req.id)}
                         className="p-1.5 bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all"
                       >
                         <X size={12} />
@@ -255,10 +249,10 @@ const ContactList = () => {
             {friends.length > 0 ? (
               friends.map((user) => (
                 <button
-                  key={user._id}
+                  key={user.id}
                   onClick={() => handleSelect(user)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                    selectedContact?._id === user._id
+                    selectedContact?.id === user.id
                       ? "bg-violet-600/20 text-white shadow-lg"
                       : "text-white/60 hover:bg-white/5"
                   }`}

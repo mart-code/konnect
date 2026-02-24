@@ -26,15 +26,15 @@ const MessageInput = () => {
 
     const isGroup = selectedContact?.isGroup;
     const roomId = isGroup
-      ? `group_${selectedContact._id}`
-      : `dm_${[userInfo.id, selectedContact._id].sort().join("_")}`;
+      ? `group_${selectedContact.id}`
+      : `dm_${[userInfo.id, selectedContact.id].sort().join("_")}`;
     
     socketRef.current.emit("sendMessage", {
       roomId,
       message: {
-        senderId: userInfo.id,
-        receiverId: isGroup ? null : selectedContact._id,
-        groupId: isGroup ? selectedContact._id : null,
+        sender: userInfo.id,
+        receiver: isGroup ? null : selectedContact.id,
+        groupId: isGroup ? selectedContact.id : null,
         content: message.trim(),
         messageType: "text",
       },
@@ -61,15 +61,15 @@ const MessageInput = () => {
         const { fileUrl, messageType } = response.data;
         const isGroup = selectedContact?.isGroup;
         const roomId = isGroup
-          ? `group_${selectedContact._id}`
-          : `dm_${[userInfo.id, selectedContact._id].sort().join("_")}`;
+          ? `group_${selectedContact.id}`
+          : `dm_${[userInfo.id, selectedContact.id].sort().join("_")}`;
 
         socketRef.current.emit("sendMessage", {
           roomId,
           message: {
-            senderId: userInfo.id,
-            receiverId: isGroup ? null : selectedContact._id,
-            groupId: isGroup ? selectedContact._id : null,
+            sender: userInfo.id,
+            receiver: isGroup ? null : selectedContact.id,
+            groupId: isGroup ? selectedContact.id : null,
             content: "",
             messageType,
             fileUrl,

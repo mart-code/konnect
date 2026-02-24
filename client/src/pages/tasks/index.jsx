@@ -15,28 +15,28 @@ import { toast } from "sonner";
  *   - Uses Zustand task-slice for global state management
  *   - Tasks are filtered into three columns: Todo, In Progress, Done
  */
+import { useQuery } from "@apollo/client";
+import { GET_TASKS_QUERY } from "../../graphql/queries";
+
 const Tasks = () => {
   const { tasks, setTasks } = useAppStore();
-  const [loading, setLoading] = useState(true);
 
+  const { data, loading } = useQuery(GET_TASKS_QUERY, {
+    onCompleted: (data) => {
+      setTasks(data.getTasks);
+    },
+    onError: () => {
+      toast.error("Failed to fetch tasks");
+    },
+    fetchPolicy: "network-only",
+  });
+
+  // Re-sync store when data changes
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await apiClient.get(TASKS_ROUTES, {
-          withCredentials: true,
-        });
-        if (response.status === 200) {
-          setTasks(response.data);
-        }
-      } catch (error) {
-        toast.error("Failed to fetch tasks");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [setTasks]);
+    if (data?.getTasks) {
+      setTasks(data.getTasks);
+    }
+  }, [data, setTasks]);
 
   const columns = [
     { id: "todo", title: "Todo", icon: Circle, color: "text-blue-400" },
@@ -95,7 +95,7 @@ const Tasks = () => {
               {tasks
                 .filter((t) => t.status === column.id)
                 .map((task) => (
-                  <TaskCard key={task._id} task={task} />
+                  <TaskCard key={task.id} task={task} />
                 ))}
               
               {tasks.filter((t) => t.status === column.id).length === 0 && (

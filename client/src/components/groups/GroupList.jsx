@@ -9,30 +9,27 @@ import CreateGroupModal from "./CreateGroupModal";
 /**
  * GroupList — Sidebar for the groups page
  */
+import { useQuery } from "@apollo/client";
+import { GET_GROUPS_QUERY } from "../../graphql/queries";
+
 const GroupList = () => {
   const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { setSelectedContact, selectedContact } = useAppStore();
 
-  const fetchGroups = async () => {
-    try {
-      const response = await apiClient.get(GET_MY_GROUPS, {
-        withCredentials: true,
-      });
-      if (response.status === 200) {
-        setGroups(response.data);
-      }
-    } catch (error) {
+  const { refetch: fetchGroups, loading } = useQuery(GET_GROUPS_QUERY, {
+    onCompleted: (data) => {
+      setGroups(data.getGroups);
+    },
+    onError: () => {
       toast.error("Failed to fetch groups");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    fetchPolicy: "network-only",
+  });
 
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    if (groups.length === 0) fetchGroups();
+  }, [fetchGroups, groups.length]);
 
   const handleSelect = (group) => {
     // We treat the group object similarly to a contact object in the store
