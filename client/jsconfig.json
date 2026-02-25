@@ -1,6 +1,6 @@
 {
-  "files": [
-    "src/**/*"
+  "include": [
+    "src"
   ],
   "compilerOptions": {
     "jsx": "react",
