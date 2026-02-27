@@ -102,6 +102,10 @@ const CallModal = () => {
           endCall(false);
         });
 
+        socketRef.current.on("memberJoinedGroupCall", ({ user }) => {
+          toast.info(`${user.firstName || user.email} joined the group call`);
+        });
+
       } catch (err) {
         console.error("WebRTC Error:", err);
       }
@@ -113,6 +117,7 @@ const CallModal = () => {
       socketRef.current.off("callAccepted");
       socketRef.current.off("iceCandidate");
       socketRef.current.off("callEnded");
+      socketRef.current.off("memberJoinedGroupCall");
     };
   }, []);
 
@@ -206,7 +211,7 @@ const CallModal = () => {
         <div className="absolute top-8 left-8 flex items-center gap-3 bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-white/70 text-xs font-bold uppercase tracking-widest">
-            {activeCall?.to?.firstName ? `${activeCall?.to.firstName} ${activeCall?.to.lastName || ""}` : activeCall?.to.email}
+            {activeCall.isGroupCall ? `Group Call: ${activeCall.to.name || "Team"}` : (activeCall?.to?.firstName ? `${activeCall?.to.firstName} ${activeCall?.to.lastName || ""}` : activeCall?.to.email)}
           </span>
         </div>
       </div>

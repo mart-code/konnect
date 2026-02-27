@@ -37,8 +37,8 @@ const CallOverlay = ({ onAccept, onReject }) => {
 
           <div>
             <h3 className="text-white font-bold text-lg">{displayName}</h3>
-            <p className="text-white/40 text-xs uppercase tracking-widest font-bold mt-1">
-              Incoming Video Call...
+            <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mt-1">
+              {incomingCall.isGroupCall ? "Incoming Group Video Call" : "Incoming Video Call..."}
             </p>
           </div>
 

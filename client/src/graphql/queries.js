@@ -186,6 +186,19 @@ export const CREATE_GROUP_MUTATION = gql`
   }
 `;
 
+export const ADD_MEMBERS_TO_GROUP_MUTATION = gql`
+  mutation AddMembersToGroup($groupId: ID!, $members: [ID!]!) {
+    addMembersToGroup(groupId: $groupId, members: $members) {
+      id
+      name
+      members {
+        id
+        firstName
+      }
+    }
+  }
+`;
+
 export const GET_DM_MESSAGES_QUERY = gql`
   query GetDirectMessages($userId: ID!) {
     getDirectMessages(userId: $userId) {

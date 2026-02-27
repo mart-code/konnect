@@ -6,8 +6,9 @@ import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import { useSocket } from "../../context/SocketContext";
 import { getColor } from "../../lib/utils";
-import { Phone, Video, Info, Loader2, Users } from "lucide-react";
+import { Phone, Video, Info, Loader2, Users, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import AddMembersModal from "../groups/AddMembersModal";
 
 /**
  * MessagePanel — The main chat window for the selected contact
@@ -48,13 +49,34 @@ const MessagePanel = () => {
     : (dmMessages[selectedContact?.id] || []);
 
   const handleStartCall = () => {
-    if (!isGroup && selectedContact) {
-      setActiveCall({
-        to: selectedContact,
-        isCaller: true,
-      });
+    if (selectedContact) {
+      if (isGroup) {
+        // For groups, we notify all members via socket
+        socketRef.current.emit("startGroupCall", {
+          groupId: selectedContact.id,
+          from: {
+            id: userInfo.id,
+            firstName: userInfo.firstName,
+            lastName: userInfo.lastName,
+            color: userInfo.color
+          }
+        });
+        // Then join the call locally
+        setActiveCall({
+          to: selectedContact,
+          isCaller: true,
+          isGroupCall: true,
+        });
+      } else {
+        setActiveCall({
+          to: selectedContact,
+          isCaller: true,
+        });
+      }
     }
   };
+
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
 
   // 1. Fetch history when contact changes
   useEffect(() => {
@@ -110,7 +132,7 @@ const MessagePanel = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!isGroup && (
+          {!isGroup ? (
             <>
               <button className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                 <Phone size={18} />
@@ -122,17 +144,37 @@ const MessagePanel = () => {
                 <Video size={18} />
               </button>
             </>
-          )}
-          {isGroup && (
-            <button className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all">
-              <Users size={18} />
-            </button>
+          ) : (
+            <>
+              <button 
+                onClick={() => setShowAddMembersModal(true)}
+                className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all text-emerald-500/50 hover:text-emerald-500"
+              >
+                <Users size={18} />
+              </button>
+              <button 
+                onClick={handleStartCall}
+                className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all text-violet-500/50 hover:text-violet-500"
+              >
+                <Video size={18} />
+              </button>
+            </>
           )}
           <button className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all">
             <Info size={18} />
           </button>
         </div>
       </div>
+
+      {showAddMembersModal && (
+        <AddMembersModal 
+          group={selectedContact}
+          onClose={() => setShowAddMembersModal(false)}
+          onSuccess={() => {
+            setShowAddMembersModal(false);
+          }}
+        />
+      )}
 
       {/* Messages List */}
       <div
@@ -167,9 +209,5 @@ const MessagePanel = () => {
   );
 };
 
-// Simple icon for empty state
-const MessageSquare = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-);
 
 export default MessagePanel;

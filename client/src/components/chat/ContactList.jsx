@@ -20,8 +20,9 @@ import {
  *   - Fetches users on mount
  *   - On selection, updates selectedContact in Zustand
  */
-import { useQuery, useMutation } from "@apollo/client";
-import { GET_FRIENDS_QUERY, GET_PENDING_REQUESTS_QUERY, ACCEPT_FRIEND_REQUEST_MUTATION, REJECT_FRIEND_REQUEST_MUTATION } from "../../graphql/queries";
+import { useQuery, useMutation, useLazyQuery } from "@apollo/client";
+
+import { GET_FRIENDS_QUERY, GET_PENDING_REQUESTS_QUERY, ACCEPT_FRIEND_REQUEST_MUTATION, REJECT_FRIEND_REQUEST_MUTATION, SEARCH_USERS_QUERY, SEND_FRIEND_REQUEST_MUTATION } from "../../graphql/queries";
 
 const ContactList = () => {
   const [friends, setFriends] = useState([]);

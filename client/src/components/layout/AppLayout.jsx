@@ -309,9 +309,10 @@ const AppLayout = () => {
 
   const handleAcceptCall = () => {
     setActiveCall({
-      to: incomingCall.from,
+      to: incomingCall.isGroupCall ? { ...incomingCall.from, _id: incomingCall.groupId, isGroup: true } : incomingCall.from,
       isCaller: false,
       offer: incomingCall.offer,
+      isGroupCall: incomingCall.isGroupCall,
     });
     setIncomingCall(null);
   };

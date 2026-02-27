@@ -71,6 +71,11 @@ export const SocketProvider = ({ children }) => {
       setIncomingCall({ from, offer });
     });
 
+    socket.on("incomingGroupCall", ({ from, groupId }) => {
+      // Find the group in the store to get its name (or it will be fetched in CallModal)
+      setIncomingCall({ from, groupId, isGroupCall: true });
+    });
+
     // ─── CALL ACCEPTED ──────────────────────────────────────────────
     socket.on("callAccepted", ({ answer }) => {
       // We don't update Zustand here, the CallModal listens to the socket directly
